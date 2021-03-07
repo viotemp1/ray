@@ -7,6 +7,7 @@ import os
 import sys
 import numpy as np
 import time
+import datetime
 
 from ray.tune.callback import Callback
 from ray.tune.logger import pretty_print
@@ -452,6 +453,7 @@ def memory_debug_str():
     try:
         import ray  # noqa F401
         import psutil
+        import GPUtil
         total_gb = psutil.virtual_memory().total / (1024**3)
         used_gb = total_gb - psutil.virtual_memory().available / (1024**3)
         if used_gb > total_gb * 0.9:
@@ -463,8 +465,12 @@ def memory_debug_str():
                     "`object_store_memory` when calling `ray.init`.")
         else:
             warn = ""
-        return "Memory usage on this node: {}/{} GiB{}".format(
-            round(used_gb, 1), round(total_gb, 1), warn)
+        result = f"Memory usage on this node: {round(used_gb, 1)}/{round(total_gb, 1)}"
+        GPUs = GPUtil.getGPUs()
+        for gpu in GPUs:
+            result = result + " GPU{:2d}: {:.1f}/{:.1f}".format(gpu.id, gpu.memoryUsed/1024, gpu.memoryTotal/1024)
+        result = result + f" GiB - {warn}"
+        return result
     except ImportError:
         return ("Unknown memory usage. Please run `pip install psutil` "
                 "to resolve)")
@@ -670,7 +676,7 @@ def best_trial_str(
     if isinstance(parameter_columns, Mapping):
         parameter_columns = parameter_columns.keys()
     params = {p: config.get(p) for p in parameter_columns}
-    return f"Current best trial: {trial.trial_id} with {metric}={val} and " \
+    return f"Current best trial: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {trial.trial_id} with {metric}={val} and " \
            f"parameters={params}"
 
 

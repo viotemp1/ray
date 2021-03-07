@@ -122,7 +122,13 @@ class SkOptSearch(Searcher):
                  points_to_evaluate: Optional[List[Dict]] = None,
                  evaluated_rewards: Optional[List] = None,
                  max_concurrent: Optional[int] = None,
-                 use_early_stopped_trials: Optional[bool] = None):
+                 use_early_stopped_trials: Optional[bool] = None,
+                 base_estimator: Optional[str] = "GP",
+                 n_initial_points: Optional[int] = 10,
+                 initial_point_generator: Optional[str] = "random",
+                 acq_func: Optional[str] = "gp_hedge",
+                 random_state: Optional[int] = None
+                 ):
         assert sko is not None, ("skopt must be installed! "
                                  "You can install Skopt with the command: "
                                  "`pip install scikit-optimize`.")
@@ -130,6 +136,14 @@ class SkOptSearch(Searcher):
         if mode:
             assert mode in ["min", "max"], "`mode` must be 'min' or 'max'."
         self.max_concurrent = max_concurrent
+        
+        self._base_estimator = base_estimator
+        self._n_initial_points = n_initial_points
+        self._initial_point_generator = initial_point_generator
+        self._acq_func = acq_func
+        self._random_state = random_state
+        
+        
         super(SkOptSearch, self).__init__(
             metric=metric,
             mode=mode,
@@ -193,7 +207,9 @@ class SkOptSearch(Searcher):
                     "If you don't pass an optimizer instance to SkOptSearch, "
                     "pass a valid `space` parameter.")
 
-            self._skopt_opt = sko.Optimizer(self._parameter_ranges)
+            self._skopt_opt = sko.Optimizer(self._parameter_ranges, base_estimator=self._base_estimator, n_initial_points=self._n_initial_points,
+                                            initial_point_generator=self._initial_point_generator, acq_func=self._acq_func,
+                                            random_state=self._random_state)
 
         if self._points_to_evaluate and self._evaluated_rewards:
             skopt_points = [[point[par] for par in self._parameter_names]

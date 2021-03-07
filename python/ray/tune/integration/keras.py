@@ -144,13 +144,17 @@ class TuneReportCallback(TuneCallback):
 
     def __init__(self,
                  metrics: Union[None, str, List[str], Dict[str, str]] = None,
+                 frequency: int = 1,
                  on: Union[str, List[str]] = "epoch_end"):
         super(TuneReportCallback, self).__init__(on)
         if isinstance(metrics, str):
             metrics = [metrics]
         self._metrics = metrics
+        self._frequency = frequency
+        self._counter = Counter()
 
     def _handle(self, logs: Dict, when: str = None):
+        self._counter[when] += 1
         if not self._metrics:
             report_dict = logs
         else:
@@ -161,7 +165,8 @@ class TuneReportCallback(TuneCallback):
                 else:
                     metric = key
                 report_dict[key] = logs[metric]
-        tune.report(**report_dict)
+        if self._counter[when] % self._frequency == 0:
+            tune.report(**report_dict)
 
 
 class _TuneCheckpointCallback(TuneCallback):

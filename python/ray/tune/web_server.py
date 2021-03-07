@@ -97,6 +97,9 @@ def RunnerHandler(runner):
         the TuneServer.
         """
 
+        def log_message(self, format, *args):
+            return
+
         def _do_header(self, response_code=200, headers=None):
             """Sends the header portion of the HTTP response.
 
