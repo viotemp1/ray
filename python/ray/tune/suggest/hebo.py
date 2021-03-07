@@ -263,11 +263,18 @@ class HEBOSearch(Searcher):
 
         if result:
             self._process_result(trial_id, result)
-        self._live_trial_mapping.pop(trial_id)
+        if trial_id in self._live_trial_mapping:
+            self._live_trial_mapping.pop(trial_id)
 
     def _process_result(self, trial_id: str, result: Dict):
-        trial_info = self._live_trial_mapping[trial_id]
-        if result and not is_nan_or_inf(result[self._metric]):
+#        trial_info = self._live_trial_mapping[trial_id]
+#        if result and not is_nan_or_inf(result[self._metric]):
+         if trial_id in self._live_trial_mapping:
+             trial_info = self._live_trial_mapping[trial_id]
+         else:
+            trial_info = None
+            logger.warning(f"hebo - trial_id {trial_id} not in self._live_trial_mapping {len(self._live_trial_mapping)}")
+         if result and not is_nan_or_inf(result[self._metric]) and trial_info is not None:
             self._opt.observe(
                 trial_info, np.array([self._metric_op * result[self._metric]]))
 
