@@ -15,7 +15,7 @@ from ray.tune.utils.util import is_nan_or_inf, unflatten_dict, \
     validate_warmstart
 
 try:  # Python 3 only -- needed for lint test.
-    import hebo
+    import bo as hebo
     import torch  # hebo has torch as a dependency
 except ImportError:
     hebo = None
