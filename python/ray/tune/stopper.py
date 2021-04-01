@@ -183,19 +183,35 @@ class ExperimentPlateauStopper(Stopper):
         self._std = std
         self._top = top
         self._top_values = []
+        self._mean_old = 0.
+        if self._mode == "min":
+            self._trial_best_result = defaultdict(lambda: np.inf)
+        else:
+            self._trial_best_result = defaultdict(lambda: -np.inf)
 
     def __call__(self, trial_id, result):
         """Return a boolean representing if the tuning has to stop."""
-        self._top_values.append(result[self._metric])
+        if self._mode == "min":
+            if result[self._metric] < self._trial_best_result[trial_id]:
+                self._trial_best_result[trial_id] = result[self._metric]
+        elif self._mode == "max":       
+            if result[self._metric] > self._trial_best_result[trial_id]:
+                self._trial_best_result[trial_id] = result[self._metric]
+                
+        self._top_values = [self._trial_best_result[trial_iter] for trial_iter in self._trial_best_result.keys()]
+            
         if self._mode == "min":
             self._top_values = sorted(self._top_values)[:self._top]
-        else:
+        elif self._mode == "max":
             self._top_values = sorted(self._top_values)[-self._top:]
+            
+#         logger.info(f"ExperimentPlateauStopper _top_values {self._top_values}")
 
         # If the current iteration has to stop
         if self.has_plateaued():
             # we increment the total counter of iterations
             self._iterations += 1
+#             logger.info(f"ExperimentPlateauStopper has_plateaued iterations {self._iterations}")
         else:
             # otherwise we reset the counter
             self._iterations = 0
@@ -205,12 +221,18 @@ class ExperimentPlateauStopper(Stopper):
         return self.stop_all()
 
     def has_plateaued(self):
-        return (len(self._top_values) == self._top
-                and np.std(self._top_values) <= self._std)
+        result = (len(self._top_values) == self._top) and (
+            (np.std(self._top_values) <= self._std) or (np.mean(self._top_values) == self._mean_old)
+        )
+        self._mean_old = np.mean(self._top_values)
+        return result
 
     def stop_all(self):
         """Return whether to stop and prevent trials from starting."""
-        return self.has_plateaued() and self._iterations >= self._patience
+        result = self.has_plateaued() and self._iterations >= self._patience
+        if result:
+            logger.info(f"ExperimentPlateauStopper stopping all trials after {self._iterations} iterations")
+        return result
 
 
 class EarlyStopping(ExperimentPlateauStopper):
