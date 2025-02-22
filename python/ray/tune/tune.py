@@ -980,10 +980,14 @@ def run(
         tensorboard_path = None
 
     if air_progress_reporter:
+        if isinstance(search_alg, SearchGenerator):
+            searcher_str = search_alg.searcher.__class__.__name__
+        else:
+            searcher_str = search_alg.__class__.__name__
         air_progress_reporter.experiment_started(
             experiment_name=experiment_dir_name,
             experiment_path=runner.experiment_path,
-            searcher_str=search_alg.__class__.__name__,
+            searcher_str=searcher_str,
             scheduler_str=scheduler.__class__.__name__,
             total_num_samples=search_alg.total_samples,
             tensorboard_path=tensorboard_path,
